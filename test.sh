@@ -16,6 +16,13 @@ grep -q '__version__ = "4.3.1"' "$tmp/build/sites_conformes/_version.py"
 test -f "$tmp/build/manage.py" -a -f "$tmp/build/uv.lock" -a -f "$tmp/build/Aptfile"
 grep -qx "app-procfile" "$tmp/build/Procfile" # app repo files are not overwritten
 
+# Default domain: region-aware, and never overrides what the app sets
+profile="$tmp/build/.profile.d/sites-conformes.sh"
+test "$(APP=mon-site REGION_NAME=osc-secnum-fr1 HOST_URL= ALLOWED_HOSTS= sh -c ". $profile; echo \$HOST_URL \$ALLOWED_HOSTS")" \
+  = "mon-site.osc-secnum-fr1.scalingo.io mon-site.osc-secnum-fr1.scalingo.io"
+test "$(APP=mon-site REGION_NAME=osc-fr1 HOST_URL=site.gouv.fr ALLOWED_HOSTS=site.gouv.fr,www.site.gouv.fr sh -c ". $profile; echo \$HOST_URL \$ALLOWED_HOSTS")" \
+  = "site.gouv.fr site.gouv.fr,www.site.gouv.fr"
+
 # Second build: served from the cache, other versions are evicted
 touch "$tmp/cache/sites-conformes-v0.0.1.tar.gz"
 SITES_CONFORMES_VERSION=v4.3.1 bin/compile "$tmp/build" "$tmp/cache" | grep "Using cached" >/dev/null

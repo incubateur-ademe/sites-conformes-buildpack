@@ -36,4 +36,14 @@ find "$CACHE_DIR" -name 'sites-conformes-*.tar.gz*' ! -name "$(basename "$archiv
 
 # Files committed in the app repo (Procfile, scalingo.json…) win over upstream ones.
 tar -xzf "$archive" -C "$BUILD_DIR" --strip-components=1 --skip-old-files
+
+# Sourced when a container starts (web, postdeploy, one-off). The default domain
+# depends on the region, which scalingo.json cannot know: default to it here.
+# Set HOST_URL and ALLOWED_HOSTS on the app once a custom domain is plugged in.
+mkdir -p "$BUILD_DIR/.profile.d"
+cat > "$BUILD_DIR/.profile.d/sites-conformes.sh" <<'SH'
+export HOST_URL="${HOST_URL:-$APP.$REGION_NAME.scalingo.io}"
+export ALLOWED_HOSTS="${ALLOWED_HOSTS:-$HOST_URL}"
+SH
+
 echo "-----> Sites Conformes ${tag} ready"

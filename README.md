@@ -15,6 +15,7 @@ Point de départ prêt à l’emploi : [sites-conformes-scalingo](https://github
 | Variable | Rôle |
 |---|---|
 | `SITES_CONFORMES_VERSION` | Version à déployer : `4.3.1`, `v4.3.1` ou `latest` (défaut, dernière release hors pré-versions) |
+| `HOST_URL`, `ALLOWED_HOSTS` | Par défaut le domaine Scalingo de l’app (`<app>.<région>.scalingo.io`). À définir une fois un nom de domaine branché |
 | `GITHUB_TOKEN` | Facultatif, évite la limite de l’API GitHub quand la version vaut `latest` |
 | `BUILDPACK_DEBUG` | Affiche les commandes exécutées |
 
