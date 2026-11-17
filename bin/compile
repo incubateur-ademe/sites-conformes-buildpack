@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Puts the Sites Conformes source for SITES_CONFORMES_VERSION into the build dir.
+# The apt and python buildpacks listed after this one in .buildpacks do the build.
+set -euo pipefail
+[ -n "${BUILDPACK_DEBUG:-}" ] && set -x
+
+BUILD_DIR="$1"
+CACHE_DIR="$2"
+REPO="numerique-gouv/sites-conformes"
+
+version="${SITES_CONFORMES_VERSION:-latest}"
+if [ "$version" = "latest" ] || [ "$version" = "*" ]; then
+  # /releases/latest skips pre-releases. GITHUB_TOKEN only avoids rate limits.
+  version="$(curl -fsSL ${GITHUB_TOKEN:+-H} ${GITHUB_TOKEN:+"Authorization: Bearer $GITHUB_TOKEN"} \
+    "https://api.github.com/repos/${REPO}/releases/latest" | jq -er .tag_name)" || {
+    echo " !     Could not find the latest Sites Conformes release (GitHub API rate limit?): set SITES_CONFORMES_VERSION" >&2
+    exit 1
+  }
+fi
+tag="v${version#v}" # accept 4.3.1 as well as v4.3.1
+
+mkdir -p "$CACHE_DIR"
+archive="${CACHE_DIR}/sites-conformes-${tag}.tar.gz"
+if [ -f "$archive" ]; then
+  echo "-----> Using cached Sites Conformes ${tag}"
+else
+  echo "-----> Downloading Sites Conformes ${tag}"
+  if ! curl -fsSL "https://codeload.github.com/${REPO}/tar.gz/refs/tags/${tag}" -o "${archive}.part"; then
+    echo " !     Sites Conformes ${tag} not found: check SITES_CONFORMES_VERSION" >&2
+    exit 1
+  fi
+  mv "${archive}.part" "$archive"
+fi
+# Keep only the current version in the cache.
+find "$CACHE_DIR" -name 'sites-conformes-*.tar.gz*' ! -name "$(basename "$archive")" -delete
+
+# Files committed in the app repo (Procfile, scalingo.json…) win over upstream ones.
+tar -xzf "$archive" -C "$BUILD_DIR" --strip-components=1 --skip-old-files
+echo "-----> Sites Conformes ${tag} ready"
